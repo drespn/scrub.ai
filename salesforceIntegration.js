@@ -217,8 +217,6 @@ function scrapeLinkedInProfile(linkedInUrls) {
 
     exec(command, (error, stdout, stderr) => {
 
-      console.log("stdout:", stdout);
-      console.log("stderr:", stderr);
 
       if (error) {
         console.error(`exec error: ${error}`);
@@ -234,6 +232,39 @@ function scrapeLinkedInProfile(linkedInUrls) {
       }
     });
   });
+}
+
+async function compareOwnerToTDR(company, ownerName) {
+  // Use the Salesforce API to search for the account info related to the COMPANY
+  const accountInfo = await sfConn.sobject("Account").find({ 'Name': company });
+
+  // If no account is found, return an error message
+  if (accountInfo.length === 0) {
+    return `No account found for company: ${company}`;
+  }
+
+  // Use the Salesforce API to find the user ID associated with the ownerName
+  const userInfo = await sfConn.sobject("User").find({ 'Name': ownerName });
+  
+  // If no user is found, return an error message
+  if (userInfo.length === 0) {
+    return `No user found for owner name: ${ownerName}`;
+  }
+  console.log(userInfo);
+
+  // Compare the OWNER field to the TDR field tied to the Account object
+  const account = accountInfo[0];
+  const ownerId = userInfo[0].Id;
+  const tdr = account.TDR__c;
+
+  if (ownerId === tdr) {
+    return `OWNER and TDR fields match for company: ${company}`;
+  } else {
+    // If OWNER and TDR do not match, find the TDR user's name
+    const tdrUserInfo = await sfConn.sobject("User").find({ 'Id': tdr });
+    const tdrUserName = tdrUserInfo.length > 0 ? tdrUserInfo[0].Name : 'Unknown';
+    return `OWNER (${ownerName}) and TDR (${tdrUserName}) fields do not match for company: ${company}`;
+  }
 }
 
 
@@ -257,6 +288,10 @@ async function processLeads(salesforceId, reportId) {
   for (let i = 0; i < leads.length; i++) {
     const lead = leads[i];
     const scrapedData = scrapedDataArray[i];
+
+    // Call compareOwnerToTDR() for each lead
+    const comparisonResult = await compareOwnerToTDR(lead.COMPANY, lead.OWNER);
+    console.log(comparisonResult);
 
     if (scrapedData && (scrapedData.company !== lead.COMPANY || scrapedData.position_title !== lead.TITLE)) {
       await updateSalesforceLead(lead.salesforceId, scrapedData.company, scrapedData.position_title);
