@@ -23,7 +23,7 @@ router.post('/processReport', async (req, res) => {
 
       //initialize the salesforce connection
       const instanceUrlObject = await initSalesforceConnection(salesforceId);
-      console.log(instanceUrlObject);
+      //console.log(instanceUrlObject);
       const stats = await processLeads(salesforceId, reportId);
       res.json({stats, instanceUrlObject});
     } catch (error) {
