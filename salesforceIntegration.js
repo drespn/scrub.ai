@@ -62,8 +62,8 @@ async function fetchSalesforceReportRows(salesforceId, reportId) {
   const rowsData = report.factMap["T!T"].rows;
   const columnInfo = report.reportExtendedMetadata.detailColumnInfo;
 
-// Extract column titles
-const columnTitles = Object.keys(columnInfo);
+  // Extract column titles
+  const columnTitles = Object.keys(columnInfo);
 
 /*rowsData.forEach((row, index) => {
   console.log(`Row ${index}:`, row);
@@ -278,7 +278,7 @@ async function compareLeadOwnerToTDR(company, ownerName) {
       console.error(`Error fetching TDR user info for ID: ${tdr}`, error);
       return null;
     }
-    return tdr;
+    return { tdrId: tdr, tdrName: tdrUserInfo[0].Name };
   }
 }
 
@@ -297,19 +297,26 @@ async function processLeads(salesforceId, reportId) {
   const validLinkedInUrls = linkedInUrls.filter(url => url);
   const scrapedDataArray = await scrapeLinkedInProfile(validLinkedInUrls);
 
+  //stats object initialization
   let updatedLeadsCount = 0;
+  let misalignmentsCount = 0;
+  let misalignmentsLog = [];
+
 
 
   for (let i = 0; i < leads.length; i++) {
     const lead = leads[i];
     const scrapedData = scrapedDataArray[i];
 
-    const tdrId = await compareLeadOwnerToTDR(lead.COMPANY, lead.OWNER);
+    const tdrInfo = await compareLeadOwnerToTDR(lead.COMPANY, lead.OWNER);
   
     // If OWNER and TDR do not match, update the lead's owner to the TDR user, and print a message with the changes
-    if (tdrId) {
-    await sfConn.sobject("Lead").update({ Id: lead.salesforceId, OwnerId: tdrId });
-    console.log(`Lead ${lead.FIRST_NAME} ${lead.LAST_NAME} with ID ${lead.salesforceId} updated to TDR user ${tdrId}.`);
+    if (tdrInfo) {
+    await sfConn.sobject("Lead").update({ Id: lead.salesforceId, OwnerId: tdrInfo.tdrId });
+
+    //update stats
+    misalignmentsCount++;
+    misalignmentsLog.push(`Lead ${lead.FIRST_NAME} ${lead.LAST_NAME} with ID ${lead.salesforceId} updated to TDR user ${tdrInfo.tdrName}.`);
     }
 
 
@@ -359,7 +366,7 @@ async function processLeads(salesforceId, reportId) {
     // Here you can add logic to update Salesforce or perform other actions
   }*/
 
-  return { updatedLeadsCount };
+  return { updatedLeadsCount, misalignmentsCount, misalignmentsLog};
 }
 
 //processLeads();

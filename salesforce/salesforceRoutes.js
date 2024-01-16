@@ -24,8 +24,18 @@ router.post('/processReport', async (req, res) => {
       //initialize the salesforce connection
       const instanceUrlObject = await initSalesforceConnection(salesforceId);
       //console.log(instanceUrlObject);
-      const stats = await processLeads(salesforceId, reportId);
-      res.json({stats, instanceUrlObject});
+      //process the leads and get the stats
+      const { misalignmentsCount, updatedLeadsCount, misalignmentsLog } = await processLeads(salesforceId, reportId);
+      //create a single object to send back to the client
+      const responseObject = {
+        instanceUrlObject,
+        stats: {
+          misalignmentsCount,
+          updatedLeadsCount,
+          misalignmentsLog
+        }
+      };
+      res.json(responseObject);
     } catch (error) {
       console.error('Error processing report:', error);
       res.status(500).send('Failed to process report');
