@@ -301,6 +301,8 @@ async function processLeads(salesforceId, reportId) {
   let updatedLeadsCount = 0;
   let misalignmentsCount = 0;
   let misalignmentsLog = [];
+  let misalignmentsByAccount = {};
+
 
 
 
@@ -312,11 +314,18 @@ async function processLeads(salesforceId, reportId) {
   
     // If OWNER and TDR do not match, update the lead's owner to the TDR user, and print a message with the changes
     if (tdrInfo) {
-    await sfConn.sobject("Lead").update({ Id: lead.salesforceId, OwnerId: tdrInfo.tdrId });
+      await sfConn.sobject("Lead").update({ Id: lead.salesforceId, OwnerId: tdrInfo.tdrId });
 
-    //update stats
-    misalignmentsCount++;
-    misalignmentsLog.push(`Lead ${lead.FIRST_NAME} ${lead.LAST_NAME} with ID ${lead.salesforceId} updated to TDR user ${tdrInfo.tdrName}.`);
+      //update stats
+      misalignmentsCount++;
+      misalignmentsLog.push(`Lead ${lead.FIRST_NAME} ${lead.LAST_NAME} with ID ${lead.salesforceId} updated to TDR user ${tdrInfo.tdrName}.`);
+
+        if (misalignmentsByAccount[lead.COMPANY]) {
+          misalignmentsByAccount[lead.COMPANY]++;
+        } else {
+          misalignmentsByAccount[lead.COMPANY] = 1;
+        }
+      
     }
 
 
@@ -366,7 +375,11 @@ async function processLeads(salesforceId, reportId) {
     // Here you can add logic to update Salesforce or perform other actions
   }*/
 
-  return { updatedLeadsCount, misalignmentsCount, misalignmentsLog};
+  let misalignmentsByAccountArray = Object.entries(misalignmentsByAccount);
+  misalignmentsByAccountArray.sort((a, b) => b[1] - a[1]);
+  console.log(misalignmentsByAccountArray);
+
+  return { updatedLeadsCount, misalignmentsCount, misalignmentsLog, misalignmentsByAccountArray};
 }
 
 //processLeads();

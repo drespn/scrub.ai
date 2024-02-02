@@ -25,14 +25,15 @@ router.post('/processReport', async (req, res) => {
       const instanceUrlObject = await initSalesforceConnection(salesforceId);
       //console.log(instanceUrlObject);
       //process the leads and get the stats
-      const { misalignmentsCount, updatedLeadsCount, misalignmentsLog } = await processLeads(salesforceId, reportId);
+      const { misalignmentsCount, updatedLeadsCount, misalignmentsLog, misalignmentsByAccountArray } = await processLeads(salesforceId, reportId);
       //create a single object to send back to the client
       const responseObject = {
         instanceUrlObject,
         stats: {
           misalignmentsCount,
           updatedLeadsCount,
-          misalignmentsLog
+          misalignmentsLog,
+          misalignmentsByAccountArray
         }
       };
       res.json(responseObject);
